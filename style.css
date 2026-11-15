@@ -1,4 +1,4 @@
-  @font-face{font-family:"Waguri";src:url("fonts/Waguri.woff") format("woff");font-weight:400;font-style:normal;font-display:swap}
+  @font-face{font-family:"Waguri";src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/2403@1.0/WAGURITTF.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
   :root{
     --bg:#f4f4f6; --card:#fff; --ink:#161616; --sub:#87878f; --line:#e4e4e9; --soft:#f0f0f3; --hover:#f9f9fb}
   *{box-sizing:border-box}
@@ -405,24 +405,13 @@
   .hsheet{width:min(620px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:var(--card);border-radius:22px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px rgba(0,0,0,.08);overflow:hidden;animation:hrise .22s cubic-bezier(.2,.8,.3,1)}
   @keyframes hrise{from{transform:translateY(12px);opacity:0}}
   .hsheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 24px 14px}
-  .hsheet-head h2{margin:0;font-family:"Waguri",sans-serif;font-weight:400;letter-spacing:0}
+  .hsheet-head h2{margin:0;font-family:"Waguri","IBM Plex Sans KR",sans-serif;font-weight:400;letter-spacing:0}
   .hsheet-foot{display:flex;align-items:center;gap:8px;padding:16px 24px 20px}
   .hsheet-foot .btn{border-radius:999px;padding:9px 22px}
   .icon-btn{width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:none;cursor:pointer;color:var(--sub);flex:none}
   .icon-btn:hover{background:var(--soft);color:var(--ink)}
   .guide-body{padding:0 24px 8px;overflow:auto;display:flex;flex-direction:column;gap:16px}
-  .guide-item{display:grid;grid-template-columns:22px 1fr;gap:12px;align-items:start}
   .g-num{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#f4f4f6;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
-  .guide-item h3{margin:1px 0 4px;font-size:14px;font-weight:600}
-  .guide-item p{margin:0;font-size:13.5px;line-height:1.7;color:var(--ink);word-break:keep-all}
-  .guide-item p+p{margin-top:2px}
-  .guide-item b{font-weight:600}
-  .guide-item .g-note{color:var(--sub)}
-  .guide-item .kbd{vertical-align:-4px;width:18px;height:18px;padding:2px;margin:0 1px}
-  .guide-item .kbd svg{width:100%;height:100%;display:block}
-  .kbd.eyek{width:17px;height:17px;padding:1px;border-radius:50%;background:#fff;color:#9a9aa1;display:inline-flex}
-  .kbd.eyek.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .kbd.eyek svg{width:100%;height:100%}
   @media (max-width:760px){
     .hmodal{padding:0;place-items:end center}
     .hsheet{border-radius:22px 22px 0 0;max-height:100dvh}
@@ -443,7 +432,7 @@
   /* ===== 분장실 / 스튜디오 토글 ===== */
   .modebtn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--card);border-radius:999px;cursor:pointer;color:var(--ink);flex:none}
   .modebtn:hover{border-color:var(--ink)}
-  .modebtn .mb-name{font-family:"Waguri",sans-serif;font-weight:400;letter-spacing:0}
+  .modebtn .mb-name{font-family:"Waguri","IBM Plex Sans KR",sans-serif;font-weight:400;letter-spacing:0}
   .mb-desc{font-size:11.5px;color:var(--sub);white-space:nowrap;margin-left:-2px}
   body.mode-org .modebtn .mb-name{animation:mbBlink 5s ease-in-out infinite}
   @keyframes mbBlink{0%,100%{color:var(--ink)}50%{color:#c4c4ca}}
@@ -595,7 +584,6 @@
   .tbtn,.dots button,.namechk,.ratios .seg button{font-size:12px!important}
   .hright .tlink,.mb-desc,.docmeta,.credit,.hint,.count-note{font-size:12px!important}
   #tip{font-size:12px}
-  .guide-item h3,.add-drop b,#dlgMsg,.dialog p{font-size:15px}
   /* 체크 표시 가운데 맞춤 (회전된 L자 모양이 좌하단으로 쏠리던 것 보정) */
   .item.on .mark.box::after{transform:translate(0,-1.8px) rotate(-45deg)!important}
 
@@ -605,7 +593,7 @@
   .label b{font-size:12px!important}
   /* ===== 왼쪽 칸: 간격 더 좁게,저장 버튼은 두껍고 둥글게 (와구리 18) ===== */
   .left,.savebar{gap:5px!important}
-  .savebar .btn{border-radius:999px;font-family:"Waguri",sans-serif;font-weight:400;font-size:18px!important;padding:12px 14px 11px;line-height:1.1;letter-spacing:0}
+  .savebar .btn{border-radius:999px;font-family:"Waguri","IBM Plex Sans KR",sans-serif;font-weight:400;font-size:18px!important;padding:12px 14px 11px;line-height:1.1;letter-spacing:0}
   /* ===== 곡률 통일: 바깥 상자 14 · 안쪽 상자 10 · 작은 조작 8 ===== */
   .card,.block,.dialog,.hsheet,#randPop,#linkPop,#touchBar{border-radius:14px!important}
   @media (max-width:760px){ .hsheet{border-radius:14px 14px 0 0!important} }
@@ -677,8 +665,6 @@
   .g-shot img{display:block;width:100%;height:auto}
   .g-shot.two{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);align-items:center}
   .g-shot.two img{background:#fff}
-  .g-shot.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line)}
-  .g-shot.three img{background:#fff}
   .g-shot.stack{display:flex;flex-direction:column;gap:1px;background:var(--line)}
   .g-shot.stack img{background:#fff}
   .guide-body.fit .g-step[hidden]{display:none!important}
@@ -790,7 +776,7 @@
     .res-foot{flex-wrap:wrap;padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:8px;align-items:stretch!important}
     .res-foot .note{flex:1 1 100%;order:-1;font-size:11.5px;line-height:1.5;color:var(--sub);text-align:center}
     .res-foot .spacer{display:none}
-    #resDiscard,#resResume{flex:1 1 0;padding:10px 6px;font-size:13px}
+    #resDiscard,#resResume{flex:1 1 0;padding:10px 6px;font-size:13px;white-space:nowrap}
     .res-foot .expbox{flex:1 1 100%}
     #resExport{padding:12px}
   }
@@ -820,3 +806,5 @@
   /* 나란한 두 그림 사이에 얹는 오른쪽 화살표 (7쪽 아래 화살표와 같은 모양) */
   .g-shot.g-harrow{position:relative}
   .g-harrow .g-arrow-r{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);z-index:2}
+  .expx{gap:5px!important} .expx svg{margin-left:-1px;margin-right:-3px}
+  .expopts label.dis{opacity:.4;pointer-events:none}

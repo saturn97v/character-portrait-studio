@@ -468,7 +468,7 @@ function buildBlocks(root){
     if(ch.type==='group' && !/^\s*#/.test(raw)){
       const layers=ch.children.slice().reverse().filter(o=>nodeImage(o)).map(o=>mkL(o,o.name,!o.hidden));
       const onCount=layers.filter(l=>l.on).length;
-      blocks.push({id:++uid,type:'folder',name:cleanName(raw)||'폴더',multi:onCount>1,randomOn:true,layers,clipTo:null,clipOn:false,srcClip:!!ch.clipping,
+      blocks.push({id:++uid,type:'folder',srcName:raw,name:cleanName(raw)||'폴더',multi:onCount>1,randomOn:true,layers,clipTo:null,clipOn:false,srcClip:!!ch.clipping,
         hidden:!!ch.hidden, defHidden:!!ch.hidden, gblend:ch.blend||'pass', gop:ch.opacity??1,
         color:ch.labelColor?paleOf('#'+ch.labelColor.map(v=>v.toString(16).padStart(2,'0')).join('')):null});
     } else {
@@ -502,7 +502,7 @@ function validateClips(){
   for(const B of blocks){ if(B.type==='folder') check(B,{kind:'folder',id:B.id}); B.layers.forEach(L=>check(L,{kind:'layer',id:L.id})); }
   if(n&&doc) setTimeout(()=>toast(`옮긴 위치에서 성립하지 않는 클리핑 연결 ${n}개를 지웠어요`,2200),0);
 }
-const isOn=L=>L.on;   // 정리 모드와 스탠딩 만들기 모드가 같은 켜짐 상태를 공유
+const isOn=L=>L.on;   // 분장실과 스튜디오가 같은 켜짐 상태를 공유
 function enforceSingle(B){ if(B.type!=='folder'||B.multi) return 0; let seen=false, n=0; for(const L of B.layers){ if(L.on){ if(seen){ L.on=false; n++; } seen=true; } } return n; }
 // 파츠를 옮긴 뒤: 분장실은 여러 개 켜져 있어도 그대로(스튜디오로 갈 때 중복 허용으로 바뀜), 스튜디오는 하나만 고르는 폴더면 끄고 알림
 function afterMoveInto(T){
@@ -841,7 +841,7 @@ function clipHandle(obj,src){
   if(obj.clipTo && resolveRef(obj.clipTo)){
     h.classList.add('set',obj.clipOn?'on':'off');
     h.onpointerenter=()=>showClipPeek(h,obj.clipTo); h.onpointerleave=hideClipPeek;
-    h.title=obj.clipOn?`클리핑: ${refName(obj.clipTo)} (클릭하면 해제 · 끌면 다른 곳에 연결)`:`클리핑 해제됨: ${refName(obj.clipTo)} (클릭하면 다시 클리핑)`;
+    h.title=obj.clipOn?`클리핑: ${refName(obj.clipTo)} (클릭하면 해제, 끌면 다른 곳에 연결)`:`클리핑 해제됨: ${refName(obj.clipTo)} (클릭하면 다시 클리핑)`;
   } else h.title='끌어서 클리핑할 파츠나 폴더에 놓으세요';
   h.innerHTML=CLIP_SVG;
   h.draggable=false;
@@ -957,7 +957,7 @@ function renderPanel(){
     const top=document.createElement('div'); top.className='btop'; top.append(grip);
     if(B.type==='folder'&&B.hidden) el.classList.add('fhidden');
     if(B.type==='folder'){   // 분장실·스튜디오: 폴더의 빈 곳을 누르면 폴더 켜기/끄기
-      head.title=B.hidden?'빈 곳을 누르면 폴더 켜기':'빈 곳을 누르면 폴더 끄기';
+      head.title=B.hidden?'빈 곳을 눌러 폴더 켜기':'빈 곳을 눌러 폴더 끄기';
       el.addEventListener('click',e=>{
         // 세로 구분선 왼쪽(폴더 이름 칸)을 눌렀을 때만
         if(!e.target.closest('.bhead')&&!(e.target===el&&e.clientX<head.getBoundingClientRect().right)) return;
@@ -975,7 +975,7 @@ function renderPanel(){
       const lab=document.createElement('label'); lab.className='chk make-only';
       const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=B.multi;
       cb.onchange=()=>{ B.multi=cb.checked; B.multiSet=true; enforceSingle(B); renderPanel(); render(); };
-      lab.append(cb,document.createTextNode('중복 허용')); lab.title='중복 체크 허용: 이 폴더에서 여러 개를 동시에 선택';
+      lab.append(cb,document.createTextNode('중복 허용')); lab.title='중복 체크 허용: 이 폴더에서 여러 파츠를 동시에 선택';
       ctrl.append(lab);
       // 폴더 색
       const chips=document.createElement('div'); chips.className='fcolors org-only';
@@ -1001,8 +1001,8 @@ function renderPanel(){
       toast(B.hideMake?`${what} 숨겨졌습니다. 스튜디오에서 보이지 않게 됩니다.`:`${what} 다시 보이게 됩니다.`,2200); };
     ctrl.appendChild(hb);
     if(B.type==='folder'){
-      const x=document.createElement('button'); x.className='xbtn org-only'; x.innerHTML='<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3.9 3.9l8.2 8.2M12.1 3.9l-8.2 8.2"/></svg>'; x.title='폴더 해제 (레이어는 폴더 미지정으로 이동)';
-      x.onclick=async e=>{ e.stopPropagation(); if(!await ask(`'${B.name}' 폴더를 해제할까요?\n안의 파츠는 폴더 미지정으로 옮겨집니다.`)) return; if(B.hidden) B.layers.forEach(L=>L.on=false); const lostClip=!!B.clipTo; const i=blocks.indexOf(B); blocks.splice(i,1,{id:++uid,type:'loose',layers:B.layers}); normalize(); renderPanel(); render(); toast(`폴더 '${B.name}'를 해제했어요`+(lostClip?' · 폴더 클리핑은 지워졌어요':''),1800); };
+      const x=document.createElement('button'); x.className='xbtn org-only'; x.innerHTML='<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3.9 3.9l8.2 8.2M12.1 3.9l-8.2 8.2"/></svg>'; x.title='폴더 해제 (파츠는 폴더 미지정으로 이동)';
+      x.onclick=async e=>{ e.stopPropagation(); if(!await ask(`'${B.name}' 폴더를 해제할까요?`)) return; if(B.hidden) B.layers.forEach(L=>L.on=false); const lostClip=!!B.clipTo; const i=blocks.indexOf(B); blocks.splice(i,1,{id:++uid,type:'loose',layers:B.layers}); normalize(); renderPanel(); render(); toast(`폴더 '${B.name}'를 해제했어요`+(lostClip?' · 폴더 클리핑은 지워졌어요':''),1800); };
       ctrl.appendChild(x);
     }
     if(org&&!TOUCH.matches){   // 세로선 왼쪽(머리 칸) 아무 곳이나 잡고 위아래로만 옮김
@@ -1361,7 +1361,7 @@ const pop=$('randPop');
 function buildRandList(){
   const list=$('randList'); list.innerHTML='';
   const fs=blocks.filter(b=>b.type==='folder'&&b.layers.length&&!b.hideMake&&!b.hidden);
-  if(!fs.length){ list.innerHTML='<div style="color:var(--sub);font-size:12.5px;padding:6px">랜덤으로 고를 폴더가 없어요.</div>'; return; }
+  if(!fs.length){ list.innerHTML='<div style="color:var(--sub);font-size:12.5px;padding:6px">선택된 폴더가 없습니다.</div>'; return; }
   for(const B of fs){
     const lab=document.createElement('label'); const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=B.randomOn;
     cb.onchange=()=>B.randomOn=cb.checked;
@@ -1493,7 +1493,7 @@ function setEnterMode(on){
   b.textContent=on?'연속 저장 모드 종료':(NOKEY()?'PNG 연속 저장':'Enter 키로 PNG 연속 저장');
   b.classList.toggle('on',on); b.classList.toggle('enter-on',on);
   $('enterBadge').classList.toggle('show',on);
-  $('countNote').textContent=on?(snaps.length?`기억한 조합 ${snaps.length}개`:(NOKEY()?'카메라 버튼을 누를 때마다 지금 조합을 기억해요':'Enter를 누를 때마다 지금 조합을 기억해요')):'';
+  $('countNote').textContent=on?(snaps.length?`기억한 조합 ${snaps.length}개`:(NOKEY()?'카메라 버튼을 누를 때마다 지금 조합을 기억합니다.':'Enter를 누를 때마다 지금 조합을 기억합니다.')):'';
 }
 $('btnEnter').onclick=async e=>{
   e.currentTarget.blur();
@@ -1519,6 +1519,9 @@ function openResults(){
   if(resView!=='full'&&resView!=='zoom') resView='full';
   setSeg('resScope',resView); $('resCols').value=resCols; $('resChar').value=charName;
   $('expFull').checked=resView==='full'; $('expZoom').checked=resView==='zoom';
+  const dm=isDemo(); $('expFull').closest('label').classList.toggle('dis',dm); $('expZoom').closest('label').classList.toggle('dis',dm);
+  if(dm){ $('expFull').checked=false; $('expZoom').checked=true; }
+  $('resExport').textContent=dm?'모아보기 저장 (.png)':'내보내기 (.zip)';
   $('resGrid').innerHTML=''; openOverlay('resDlg'); buildThumbs().catch(e=>{ console.error(e); toast('기억한 그림을 불러오지 못했어요.'); });
 }
 function setSeg(id,v){ document.querySelectorAll(`#${id} button`).forEach(b=>b.classList.toggle('on',b.dataset.v===v)); }
@@ -1609,42 +1612,150 @@ $('resColPlus').onclick=()=>setCols(resCols+1);
 $('resDiscard').onclick=async()=>{ if(await ask(`기억한 조합 ${snaps.length}개를 모두 지울까요?`)){ snaps=[]; closeOverlay('resDlg'); $('countNote').textContent=''; } };
 $('resResume').onclick=()=>{ closeOverlay('resDlg'); setEnterMode(true); };
 // 내보내기 옵션
-$('resExport').onclick=e=>{
+$('resExport').onclick=async e=>{
   e.currentTarget.blur();
-  if(isDemo()){ notice(DEMO_NOSAVE); return; }
+  if(isDemo()){ if(await exportDemoSheet()) offerBrag(); return; }   // 데모: 확대 영역 모아보기 1장만
   const views=[]; if($('expFull').checked) views.push('full'); if($('expZoom').checked) views.push('zoom');
   if(!views.length){ toast('위에서 전체 이미지·확대 영역 중 하나 이상 골라 주세요'); return; }
-  exportZip(views);
+  if(await exportZip(views)) offerBrag();
 };
 
 // ---- 미리보기 시트 ----
 // 번호·이름 글씨 = 시트 속 이미지 한 장 폭의 8%. 확대 영역은 한 장 360px로 리사이징, 전체 이미지는 원본 크기(캔버스 한계를 넘을 때만 자동 축소)
 const FONT='"IBM Plex Sans KR", sans-serif', SHEET_W=360;
-function makeSheet(sizes,cellW,title){
-  const s=cellW/SHEET_W, fs=cellW*.08, pad=24*s, gapX=8*s, gapY=12*s, labelGap=3*s, labelH=fs*1.25, tfs=cellW*.12, titleH=title?tfs*1.45:0;
-  const items=sizes.map(([w,h])=>({w:cellW,h:h*cellW/w}));
+// 긴 이름: 칸 폭을 넘으면 2줄로 나누고, 2줄로도 넘치면 비율을 유지한 채 글씨를 줄임(최소 60%, 그래도 넘치면 …)
+function fitName(x,name,w,fs0){
+  const split=fs=>{
+    x.font=`600 ${fs}px ${FONT}`;
+    if(x.measureText(name).width<=w) return [name];
+    const lines=[]; let cur='';
+    for(const ch of name){
+      if(cur&&x.measureText(cur+ch).width>w){
+        const sp=cur.lastIndexOf(' ');
+        if(sp>0&&cur.length-sp<=6){ lines.push(cur.slice(0,sp)); cur=cur.slice(sp+1)+ch; }   // 가까운 띄어쓰기에서 끊기
+        else { lines.push(cur); cur=ch; }
+      } else cur+=ch;
+    }
+    if(cur) lines.push(cur.trimStart());
+    return lines;
+  };
+  let fs=fs0, lines=split(fs);
+  while(lines.length>2&&fs>fs0*.6){ fs=Math.max(fs0*.6,fs*.92); lines=split(fs); }
+  if(lines.length>2){
+    let l2=lines.slice(1).join(''); x.font=`600 ${fs}px ${FONT}`;
+    while(l2.length>1&&x.measureText(l2+'…').width>w) l2=l2.slice(0,-1);
+    lines=[lines[0],l2+'…'];
+  }
+  return {lines,fs};
+}
+function makeSheet(sizes,cellW,title,names){
+  const s=cellW/SHEET_W, fs=cellW*.08, pad=24*s, gapX=8*s, gapY=12*s, labelGap=3*s, lineH=1.25, tfs=cellW*.12, titleH=title?tfs*1.45:0;
+  const mx=mkCanvas(1,1).getContext('2d');
+  const items=sizes.map(([w,h],i)=>{ const nm=names?.[i]; return {w:cellW,h:h*cellW/w,lab:nm?fitName(mx,nm,cellW,fs):null}; });
+  const labH=it=>it.lab?Math.max(fs*lineH,it.lab.lines.length*it.lab.fs*lineH):fs*lineH;
   const rows=[]; for(let i=0;i<items.length;i+=resCols) rows.push(items.slice(i,i+resCols));
   const W=pad*2+resCols*cellW+(resCols-1)*gapX;
   let y=pad+titleH; const pos=[];
-  rows.forEach(r=>{ const rh=Math.max(...r.map(x=>x.h)); r.forEach((it,ci)=>pos.push({x:pad+ci*(cellW+gapX),y,w:it.w,h:it.h,ly:y+it.h+labelGap})); y+=rh+labelGap+labelH+gapY; });
+  rows.forEach(r=>{ const rh=Math.max(...r.map(x=>x.h)), lh=Math.max(...r.map(labH)); r.forEach((it,ci)=>pos.push({x:pad+ci*(cellW+gapX),y,w:it.w,h:it.h,ly:y+it.h+labelGap,lab:it.lab})); y+=rh+labelGap+lh+gapY; });
   const H=y-gapY+pad;
   const k=Math.min(1,16000/W,16000/H,Math.sqrt(2.4e8/(W*H)));   // 브라우저 캔버스 한계를 넘을 때만 줄임
   const c=mkCanvas(Math.round(W*k),Math.round(H*k)), x=c.getContext('2d');
   x.scale(k,k); x.fillStyle='#fff'; x.fillRect(0,0,W,H); x.textBaseline='top'; x.textAlign='left';
   if(title){ x.fillStyle='#161616'; x.font=`700 ${tfs}px ${FONT}`; x.fillText(title,pad,pad); }
-  return {c,x,pos,s,fs};
+  return {c,x,pos,s,fs,W,H,pad};
 }
 function sheetDraw(sh,i,img,num,name){
-  const p=sh.pos[i], x=sh.x, s=sh.s, fs=sh.fs; x.drawImage(img,p.x,p.y,p.w,p.h);
+  const p=sh.pos[i], x=sh.x, fs=sh.fs; x.drawImage(img,p.x,p.y,p.w,p.h);
   // 이름을 붙였으면 이름만, 아니면 번호만
-  if(name){ x.fillStyle='#161616'; x.font=`600 ${fs}px ${FONT}`; x.fillText(name,p.x,p.ly,p.w); }
+  if(name){
+    const lab=p.lab||fitName(x,name,p.w,fs);
+    x.fillStyle='#161616'; x.font=`600 ${lab.fs}px ${FONT}`;
+    lab.lines.forEach((ln,j)=>x.fillText(ln,p.x,p.ly+j*lab.fs*1.25));
+  }
   else { x.fillStyle='#8b8b8b'; x.font=`500 ${fs}px ${FONT}`; x.fillText(num,p.x,p.ly); }
+}
+// ---- 모아보기 표기 · X에 자랑하기 ----
+const SITE_URL='https://saturn97v.github.io/character-portrait-studio/';   // 배포 주소
+const SHARE_TAG='#캐릭터_사진관_찰칵';
+const siteURL=()=>SITE_URL||(/^https?:$/.test(location.protocol)&&!/(^|\.)claude(usercontent)?\.(ai|com)$/.test(location.hostname)?location.origin+location.pathname:'');
+function brandFaint(sh){   // 모아보기 오른쪽 아래에 아주 연하고 작게 '캐릭터 사진관'
+  const x=sh.x; x.save(); x.fillStyle='#d9d9d9'; x.font=`500 ${sh.fs*.6}px ${FONT}`; x.textAlign='right'; x.textBaseline='bottom'; x.fillText('캐릭터 사진관',sh.W-sh.pad,sh.H-sh.pad*.2); x.restore();
+}
+// X 자랑하기: 저장이 끝난 뒤 물어보고, 누르면 글쓰기 창
+const BRAG_TEXT=()=>{ const u=siteURL(); return SHARE_TAG+'\n*저장된 모아보기를 첨부해서 자랑해봅시다.'+(u?'\n'+u:''); };
+try{ $('expX').checked=localStorage.getItem('charStudio.brag')!=='0'; }catch(_){ $('expX').checked=true; }
+$('expX').onchange=()=>{ try{ localStorage.setItem('charStudio.brag',$('expX').checked?'1':'0'); }catch(_){} };
+const bragURL=()=>'https://twitter.com/intent/tweet?text='+encodeURIComponent(BRAG_TEXT());
+function openBrag(){ const w=window.open(bragURL(),'_blank'); if(w) try{ w.opener=null; }catch(_){} return !!w; }
+async function offerBrag(){
+  if(!$('expX').checked) return;
+  // 저장이 끝나면 바로 X 글쓰기 창 열기. 저장이 오래 걸려 브라우저가 새 창을 막으면 그때만 한 번 물어봄
+  if(openBrag()){ toast('X 글쓰기 창을 열었어요. 저장된 모아보기를 첨부해 주세요.',3000); return; }
+  const ok=$('dlgOk'), cn=$('dlgCancel'), o1=ok.textContent, o2=cn.textContent; ok.textContent='X 열기'; cn.textContent='닫기';
+  const go=await ask('저장을 마쳤습니다! X에 자랑하러 가 볼까요?').finally(()=>{ ok.textContent=o1; cn.textContent=o2; });
+  if(!go) return;
+  if(!openBrag()){ try{ await navigator.clipboard.writeText(BRAG_TEXT()); toast('새 창이 막혀서 문구를 복사했어요. X에 붙여넣어 주세요.',3200); }catch(_){ toast('새 창이 막혔어요. 팝업을 허용해 주세요.',3000); } }
+}
+// ---- 데모 캐릭터: 확대 영역 모아보기 1장 + 아래 검은 띠 ----
+const DEMO_BAND_MSG=['데모 캐릭터입니다.','내 캐릭터 파일을 불러와 직접 찍어 보세요!'];
+function invertedLogo(){
+  const im=document.querySelector('.logo-cam'); if(!im||!im.naturalWidth) return null;
+  const c=mkCanvas(im.naturalWidth,im.naturalHeight), x=c.getContext('2d'); x.drawImage(im,0,0);
+  try{ const d=x.getImageData(0,0,c.width,c.height); for(let i=0;i<d.data.length;i+=4){ d.data[i]=255-d.data[i]; d.data[i+1]=255-d.data[i+1]; d.data[i+2]=255-d.data[i+2]; } x.putImageData(d,0,0); }catch(_){ return null; }
+  return c;
+}
+async function exportDemoSheet(){
+  if(saving||!snaps.length) return false; saving=true; const btn=$('resExport'), old=btn.textContent;
+  try{
+    btn.textContent='만드는 중…';
+    const sh=makeSheet(snaps.map(s=>[s.region.w,s.region.h]),SHEET_W,charName.trim(),snaps.map(s=>s.name.trim()));
+    for(let i=0;i<snaps.length;i++){ const s=snaps[i]; await s.ready; const img=await snapImage(s,true); sheetDraw(sh,i,img,numLabel(i,snaps.length),s.name.trim()); img.close?.(); }
+    const rowH=sh.pos[0].h+3*sh.s+sh.fs*1.25, band=rowH/2, k=sh.c.width/sh.W;
+    const c=mkCanvas(sh.c.width,Math.round((sh.H+band)*k)), x=c.getContext('2d');
+    x.drawImage(sh.c,0,0); x.scale(k,k);
+    x.fillStyle='#161616'; x.fillRect(0,sh.H,sh.W,band);
+    try{ await document.fonts.load('40px "Waguri"'); }catch(_){}
+    const logo=invertedLogo(), pad=sh.pad*1.4, cy=sh.H+band/2;
+    const stack=resCols<=2;
+    const two=resCols===2;   // 2열은 제목을 조금 더 크게
+    let iconH=band*(stack?(two?.37:.3):.46), tS=band*(stack?(two?.25:.2):.3), rS=band*(stack?.1:.13), gap=band*.12, mid=band*.3;
+    const iconW=()=>logo?iconH*logo.width/logo.height:0;
+    const wTitle=()=>{ x.font=`${tS}px "Waguri", ${FONT}`; return x.measureText('캐릭터 사진관').width; };
+    const wRight=()=>{ x.font=`600 ${rS}px ${FONT}`; return Math.max(...DEMO_BAND_MSG.map(t=>x.measureText(t).width)); };
+    const room=sh.W-pad*2;
+    if(stack){
+      const inner=Math.max(iconW()+(logo?gap:0)+wTitle(),wRight());
+      if(inner>room){ const f=room/inner*.97; iconH*=f; tS*=f; rS*=f; gap*=f; }
+      const lh=rS*1.5, blockH=iconH+rS*.9+lh*2, top=sh.H+(band-blockH)/2;
+      let lx=pad; const ty=top+iconH/2;
+      if(logo){ x.drawImage(logo,lx,top,iconW(),iconH); lx+=iconW()+gap; }
+      x.fillStyle='#fff'; x.textBaseline='middle'; x.textAlign='left'; x.font=`${tS}px "Waguri", ${FONT}`; x.fillText('캐릭터 사진관',lx,ty+tS*.04);
+      const y1=top+iconH+rS*.9+lh*.5;
+      x.font=`600 ${rS}px ${FONT}`; x.fillStyle='#fff'; x.fillText(DEMO_BAND_MSG[0],pad,y1);
+      x.font=`500 ${rS}px ${FONT}`; x.fillStyle='#bdbdbd'; x.fillText(DEMO_BAND_MSG[1],pad,y1+lh);
+    } else {
+      const inner=iconW()+(logo?gap:0)+wTitle()+mid+wRight();
+      if(inner>room){ const f=room/inner*.97; iconH*=f; tS*=f; rS*=f; gap*=f; mid*=f; }
+      let lx=pad;
+      if(logo){ x.drawImage(logo,lx,cy-iconH/2,iconW(),iconH); lx+=iconW()+gap; }
+      x.fillStyle='#fff'; x.textBaseline='middle'; x.textAlign='left'; x.font=`${tS}px "Waguri", ${FONT}`; x.fillText('캐릭터 사진관',lx,cy+tS*.04);
+      x.textAlign='right'; x.font=`600 ${rS}px ${FONT}`; x.fillStyle='#fff'; x.fillText(DEMO_BAND_MSG[0],sh.W-pad,cy-rS*.75);
+      x.font=`500 ${rS}px ${FONT}`; x.fillStyle='#bdbdbd'; x.fillText(DEMO_BAND_MSG[1],sh.W-pad,cy+rS*.75);
+    }
+    const blob=await toBlob(c); if(!blob){ toast('이미지를 만들지 못했어요.'); return false; }
+    const name='캐릭터사진관_데모_모아보기.png';
+    let r; for(let t=0;t<60;t++){ r=await saveFile(name,blob); if(r!=='busy') break; await new Promise(r=>setTimeout(r,1500)); }
+    if(r==='declined'||r==='busy') return false;
+    if(r==='fallback') downloadBlob(blob,name);
+    toast('모아보기 1장을 저장했어요',1800); return true;
+  }catch(e){ console.error(e); toast('저장하지 못했어요: '+(e.message||e)); return false; }
+  finally{ saving=false; btn.textContent=old; }
 }
 // 한 zip 최대 용량. 넘으면 촬영 5장 단위로 나눠 여러 zip으로 (미리보기도 zip마다 그 안의 것만)
 let ZIP_MAX=2*1024**3;
 const zipSize=fs=>fs.reduce((n,f)=>{ const l=new TextEncoder().encode(f.name).length; return n+30+46+2*l+f.data.length; },22);
 async function exportZip(views){
-  if(saving||!snaps.length) return; saving=true; const btn=$('resExport'); const old=btn.textContent;
+  if(saving||!snaps.length) return false; saving=true; const btn=$('resExport'); const old=btn.textContent;
   try{
     const now=new Date(), mmdd=String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
     const cn=safeName(charName), title=charName.trim(), base=`포트레이트_${cn?cn+'_':''}${mmdd}`;
@@ -1665,8 +1776,9 @@ async function exportZip(views){
     const sheetsFor=async(a,b)=>{
       const pv=[];
       for(const v of views){
-        const sh=makeSheet(snaps.slice(a,b).map(s=>sizeOf(s,v)),v==='zoom'?SHEET_W:doc.width,title);
+        const sh=makeSheet(snaps.slice(a,b).map(s=>sizeOf(s,v)),v==='zoom'?SHEET_W:doc.width,title,recs.slice(a,b).map(r=>r.name));
         for(let i=a;i<b;i++){ const f=recs[i].files.find(x=>x.v===v); const bmp=await createImageBitmap(new Blob([f.data],{type:'image/png'})); sheetDraw(sh,i-a,bmp,recs[i].num,recs[i].name); bmp.close?.(); }
+        brandFaint(sh);
         pv.push({name:`미리보기-${LABEL[v]}.png`,data:await png(sh.c)});
       }
       return pv;
@@ -1695,6 +1807,7 @@ async function exportZip(views){
       zips[z]=null;
     }
     toast(many?`용량이 커서 zip ${zips.length}개로 나눠 내보냈어요 (${k}장씩)`:'.zip으로 내보냈어요',many?3200:1800);
+    return true;
   }catch(e){ console.error(e); toast('내보내지 못했어요: '+(e.message||e)); }
   finally{ saving=false; btn.textContent=old; }
 }
@@ -1779,7 +1892,7 @@ window.addEventListener('resize',()=>{ if(doc&&setFileName._fit) setFileName._fi
 function start(d,name){
   doc={width:d.width,height:d.height,name};
   comp.width=d.width; comp.height=d.height;
-  buildBlocks(d.root);
+  buildBlocks(d.root); assignKeys(); memCur=null;
   document.body.classList.add('working');
   setFileName(name);
   renderPanel(); render(); requestAnimationFrame(()=>{ defaultRegion(); layoutPreview(); });
@@ -1804,18 +1917,103 @@ async function openFile(f,confirmed=false){
   try{
     const d=isClip?await parseCLIP(await f.arrayBuffer()):await parsePSD(await f.arrayBuffer());
     if(!d.root.children.length||!hasDrawable(d.root)){ $('loading').classList.remove('show'); await notice('불러올 레이어가 없었습니다.'); return; }
+    memSaveNow();   // 열려 있던 파일의 설정을 먼저 기억
     start(d,f.name);
-    if(!canvasOK(d.width,d.height)) await notice(`그림 크기가 너무 커서(${d.width}×${d.height}px) 이 기기에서는 제대로 보이지 않거나 저장되지 않을 수 있어요.`);
+    $('loading').classList.remove('show'); await offerResume();
+    if(!canvasOK(d.width,d.height)) await notice(`그림 크기가 너무 커요(${d.width}×${d.height}px).\n이 기기에서는 제대로 보이지 않거나 저장되지 않을 수 있어요.`);
     const sk=[d.skippedVector?`벡터 레이어 ${d.skippedVector}개`:'',d.skippedFilter?`그라데이션 맵 외 색조 보정 레이어 ${d.skippedFilter}개`:''].filter(Boolean);
     if(sk.length) toast(`${sk.join(', ')}는 불러오지 못했어요. 클립스튜디오에서 래스터화(또는 결합) 후 저장해 주세요.`,6500);
   }catch(e){ console.error(e); toast(friendlyErr(e.message),5200); }
   finally{ $('loading').classList.remove('show'); loadingFile=false; }
 }
+// ================= 이어서 하기: 정리 설정만 브라우저에 자동 기억 (그림 파일은 저장 안 함) =================
+// 레이어는 '원래 폴더 이름/원래 레이어 이름#순번'으로 알아봄 → 파일 위치가 바뀌거나 내용이 조금 바뀌어도 맞춰서 복원
+const MEM_KEY='charStudio.sessions', MEM_MAX=5;
+let memCur=null, memInit='', memLast='';
+function assignKeys(){
+  const seen=new Map();
+  for(const B of blocks) for(const L of B.layers){ const base=(B.type==='folder'?'F:'+(B.srcName??B.name)+'/':'L:')+(L.node.name||''); const n=(seen.get(base)||0)+1; seen.set(base,n); L.k=base+'#'+n; }
+}
+function memLoad(){ try{ const a=JSON.parse(localStorage.getItem(MEM_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+function memWrite(list){
+  list.sort((a,b)=>b.savedAt-a.savedAt); list=list.slice(0,MEM_MAX);
+  for(;;){ try{ localStorage.setItem(MEM_KEY,JSON.stringify(list)); return; }catch(_){ if(list.length<=1) return; list.pop(); } }   // 공간이 모자라면 오래된 것부터
+}
+function memState(){
+  const bi=new Map(blocks.map((B,i)=>[B.id,i])), lk=new Map(allLayers().map(L=>[L.id,L.k]));
+  const ref=r=>!r?null:r.kind==='folder'?(bi.has(r.id)?{kind:'folder',i:bi.get(r.id)}:null):(lk.get(r.id)?{kind:'layer',k:lk.get(r.id)}:null);
+  return {blocks:blocks.map(B=>({type:B.type,name:B.name,srcName:B.srcName,color:B.color,multi:B.multi,multiSet:B.multiSet,randomOn:B.randomOn,hidden:B.hidden,defHidden:B.defHidden,hideMake:B.hideMake,
+      clipTo:ref(B.clipTo),clipOn:B.clipOn,gblend:B.gblend,gop:B.gop,srcClip:B.srcClip,
+      layers:B.layers.filter(L=>L.k).map(L=>({k:L.k,name:L.name,on:L.on,def:L.def,clipTo:ref(L.clipTo),clipOn:L.clipOn,link:L.link||null}))})),
+    region:region?{x:region.x,y:region.y,w:region.w,h:region.h}:null, ratioKey, lastLinkG};
+}
+function memSaveNow(){
+  if(!memCur||!doc||isDemo()) return;
+  const st=JSON.stringify(memState()); if(st===memLast) return;
+  if(st===memInit&&!memCur.saved) return;   // 아무것도 안 바꿨으면 기억하지 않음
+  memLast=st; memCur.saved=true;
+  const list=memLoad().filter(e=>e.id!==memCur.id);
+  list.push({id:memCur.id,name:doc.name,w:doc.width,h:doc.height,keys:memCur.keys,savedAt:Date.now(),state:JSON.parse(st)});
+  memWrite(list);
+}
+setInterval(memSaveNow,1500);
+addEventListener('pagehide',memSaveNow); document.addEventListener('visibilitychange',()=>{ if(document.hidden) memSaveNow(); });
+async function offerResume(){
+  if(!doc||isDemo()) return;
+  const keys=allLayers().map(L=>L.k), ks=new Set(keys);
+  let best=null, bs=0;
+  for(const e of memLoad()){
+    if(e.w!==doc.width||e.h!==doc.height||!Array.isArray(e.keys)) continue;
+    let n=0; for(const k of e.keys) if(ks.has(k)) n++;
+    const j=n/(e.keys.length+keys.length-n||1); if(j>bs){ bs=j; best=e; }
+  }
+  const hit=best&&bs>=.5;
+  memCur=null;   // 고르는 동안에는 저장하지 않음
+  const cur={id:hit?best.id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),keys,saved:hit};
+  if(hit){
+    const d=new Date(best.savedAt), when=`${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const ok=$('dlgOk'), cn=$('dlgCancel'), o1=ok.textContent, o2=cn.textContent; ok.textContent='이어서 하기'; cn.textContent='새로 시작';
+    const go=await ask(`지난번에 정리하던 파일이 있습니다.\n(${best.name} · ${when})\n이어서 할까요?`).finally(()=>{ ok.textContent=o1; cn.textContent=o2; });
+    if(go) memApply(best.state);
+  }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(!doc||allLayers()[0]?.k!==keys[0]) return; memInit=memLast=JSON.stringify(memState()); memCur=cur; }));   // 확대 영역 기본값이 잡힌 뒤를 '처음 상태'로
+}
+function memApply(st){
+  const byK=new Map(allLayers().filter(L=>L.k).map(L=>[L.k,L])), used=new Set(), nb=[]; let missing=0;
+  for(const sb of st.blocks||[]){
+    const B={id:++uid,type:sb.type==='loose'?'loose':'folder',layers:[]};
+    if(B.type==='folder') Object.assign(B,{name:sb.name||'폴더',srcName:sb.srcName,color:sb.color??null,multi:!!sb.multi,multiSet:!!sb.multiSet,randomOn:sb.randomOn!==false,hidden:!!sb.hidden,defHidden:!!sb.defHidden,gblend:sb.gblend||'pass',gop:sb.gop??1,srcClip:!!sb.srcClip,clipOn:!!sb.clipOn});
+    B.hideMake=!!sb.hideMake;
+    for(const sl of sb.layers||[]){
+      const L=byK.get(sl.k); if(!L||used.has(L)){ missing++; continue; }
+      used.add(L); Object.assign(L,{name:sl.name??L.name,on:!!sl.on,def:!!sl.def,clipOn:!!sl.clipOn,link:sl.link||null}); L._clip=sl.clipTo; B.layers.push(L);
+    }
+    nb.push(B);
+  }
+  const res=r=>{ if(!r) return null; if(r.kind==='folder') return nb[r.i]&&nb[r.i].type==='folder'?{kind:'folder',id:nb[r.i].id}:null; const L=byK.get(r.k); return L&&used.has(L)?{kind:'layer',id:L.id}:null; };
+  (st.blocks||[]).forEach((sb,i)=>{ if(nb[i].type!=='folder') return; nb[i].clipTo=res(sb.clipTo); if(!nb[i].clipTo) nb[i].clipOn=false; });
+  for(const L of used){ L.clipTo=res(L._clip); delete L._clip; if(!L.clipTo) L.clipOn=false; }
+  const fresh=allLayers().filter(L=>!used.has(L)), nFresh=fresh.length;
+  if(nFresh) nb.unshift({id:++uid,type:'folder',name:'새 파츠',multi:true,multiSet:true,randomOn:true,layers:fresh.slice(),clipTo:null,clipOn:false,hidden:false,defHidden:false,gblend:'pass',gop:1,color:null});   // 파일에 새로 생긴 레이어
+  blocks=nb; normalize();
+  if(st.lastLinkG) lastLinkG=Math.max(lastLinkG,st.lastLinkG);
+  renderPanel(); render();
+  if(st.region) requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    region={...st.region}; ratioKey=st.ratioKey||ratioKey;
+    document.querySelectorAll('#ratioSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===ratioKey));
+    layoutPreview(); drawZoom();
+  }));
+  const msg=['지난번 정리를 불러왔어요.'];
+  if(nFresh) msg.push(`파일에 새로 생긴 파츠 ${nFresh}개는 맨 위 '새 파츠' 폴더에 모았어요.`);
+  if(missing) msg.push(`파일에서 없어진 파츠 ${missing}개는 뺐어요.`);
+  toast(msg.join(' '),msg.length>1?4200:2200);
+}
 // 처음으로: 올린 파일과 작업 상태를 지우고 첫 화면으로
 $('btnHome').onclick=async e=>{
   e.currentTarget.blur();
   if(saving){ toast('내보내는 도중에는 처음으로 돌아갈 수 없어요.',2200); return; }
-  if(!await ask('올린 파일과 지금까지의 작업을 지우고 처음 화면으로 돌아갈까요?')) return;
+  if(!await ask('올린 파일을 닫고 처음 화면으로 돌아갈까요?\n(정리한 설정은 5개 파일까지 이 브라우저에 기억됩니다.)')) return;
+  memSaveNow(); memCur=null;   // 닫기 전에 정리 설정 마지막으로 기억
   if(enterMode) setEnterMode(false);
   snaps=[]; blocks=[]; picked.clear(); touchMove=null; updateTouchBar(); doc=null; charName='';
   ['resDlg','imgDlg'].forEach(closeOverlay); closeLinkPop(); hideClipPeek(); $('randPop').classList.remove('show');
@@ -1824,7 +2022,7 @@ $('btnHome').onclick=async e=>{
   document.body.classList.remove('working'); setMode('org'); scrollTo(0,0);
 };
 const fi=$('fileInput');
-const ASK_NEW='지금 작업을 지우고 새 파일을 열까요?\n(저장하지 않은 정리 내용은 사라집니다)';
+const ASK_NEW='지금 작업을 닫고 새 파일을 열까요?\n(지금까지 정리한 설정은 5개 파일까지 이 브라우저에 기억됩니다.)';
 $('btnOpen').onclick=async e=>{ e.currentTarget.blur(); if(doc&&!await ask(ASK_NEW)) return; fi.click(); };
 $('btnOpen2').onclick=()=>fi.click();
 fi.onchange=()=>{ openFile(fi.files[0],true); fi.value=''; };
@@ -1868,7 +2066,7 @@ document.querySelectorAll('.hmodal').forEach(m=>m.addEventListener('pointerdown'
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; for(const id of ['addModal','guideModal']) if(!$(id).hidden){ e.stopImmediatePropagation(); closeModal(id); return; } },true);
 
 // ================= 파츠 추가 (.psd · .clip · .png → 맨 위 폴더 미지정) =================
-$('btnAdd').onclick=e=>{ e.currentTarget.blur(); openModal('addModal'); };
+$('btnAdd').onclick=e=>{ e.currentTarget.blur(); if(isDemo()){ notice('데모 캐릭터에는 파츠를 추가할 수 없어요.\n내 파일을 불러와서 추가해 보세요.'); return; } openModal('addModal'); };
 $('addClose').onclick=()=>closeModal('addModal');
 $('addInput').onchange=e=>{ const fs=[...e.target.files]; e.target.value=''; addParts(fs); };
 const addDrop=$('addDrop');
@@ -1876,6 +2074,7 @@ const addDrop=$('addDrop');
 addDrop.addEventListener('dragleave',()=>addDrop.classList.remove('over'));
 addDrop.addEventListener('drop',e=>{ if(!isFileDrag(e)) return; e.preventDefault(); e.stopPropagation(); addDrop.classList.remove('over'); addParts([...e.dataTransfer.files]); });
 async function addParts(files){
+  if(isDemo()){ closeModal('addModal'); notice('데모 캐릭터에는 파츠를 추가할 수 없어요.\n내 파일을 불러와서 추가해 보세요.'); return; }
   files=files.filter(f=>/\.(psd|psb|clip|png)$/i.test(f.name)||f.type==='image/png');
   if(!files.length){ toast('.psd · .clip · .png 파일만 추가할 수 있어요'); return; }
   $('loading').classList.add('show');
@@ -1909,7 +2108,7 @@ async function addParts(files){
 // ================= 데모 캐릭터 =================
 // 빌드할 때 데모 PSD가 들어감 (한 파일 버전: data URI · 나눈 버전: demo/demo.psd)
 const DEMO_SRC='demo/demo.psd.gz', DEMO_NAME='시범조교 양.psd';
-const DEMO_NOSAVE='데모 캐릭터는 이미지로 저장할 수 없어요.\n내 파일을 불러오면 저장할 수 있어요.';
+const DEMO_NOSAVE='데모 캐릭터는 한 장씩 저장할 수 없어요.\nPNG 연속 저장 기능을 사용해주세요.';
 const isDemo=()=>!!doc?.demo;
 async function demoBytes(){
   let buf;
@@ -1931,7 +2130,7 @@ function applyDemoPreset(){
   for(const n of ['원산지표기','클리핑 확인용 레이어(풀었다 걸었다 해보세요)']){ const B=loose(n); if(B) B.hideMake=true; }
   const link=(fn,ln,g,role)=>{ const L=Lof(F(fn),ln); if(L) L.link={g,role}; };
   link('눈','일반 눈',1,'main'); link('흰자위','일반 눈 흰자위',1,'main'); link('안광','정면',1,'sub');
-  link('흰자위','반눈 흰자위',2,'main'); link('눈','반눈2',2,'sub'); link('눈','반눈1',2,'sub'); link('안광','옆',2,'sub');
+  link('흰자위','반눈 흰자위',2,'main'); link('눈','반눈2',2,'sub'); link('눈','반눈1',2,'sub');
   lastLinkG=3;
   if(F('악세')){ F('악세').multi=true; F('악세').multiSet=true; }
   if(F('안광')) F('안광').randomOn=false;
