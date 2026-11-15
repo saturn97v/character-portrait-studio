@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>캐릭터 사진관 · 레이어 정리&포트레이트 조합기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="mode-org">
+<div id="narrowNote" role="status">창이 좁아서 화면 일부가 잘려 보일 수 있어요. 창을 조금 더 넓혀 주세요.<button type="button" aria-label="닫기" onclick="this.parentNode.classList.add('closed')">✕</button></div>
+<header>
+  <div class="hwrap">
+    <div class="hleft">
+      <div class="logo"><img class="logo-cam" src="images/logo.png" alt="" width="89" height="96">캐릭터 사진관</div>
+      <button class="guide-btn" id="guideBtn" type="button"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.2 6.2a1.9 1.9 0 113 1.5c-.7.4-1.2.8-1.2 1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".9" fill="currentColor"/></svg>도움말</button>
+    </div>
+    <div class="hright">
+      <div class="file-name" id="fileName"></div>
+      <button class="tlink" id="btnOpen" type="button">새 파일 열기</button>
+      <span class="hsep work-only" aria-hidden="true">|</span>
+      <button class="tlink work-only" id="btnHome" type="button">처음으로</button>
+      <div class="spacer"></div>
+      <span id="enterBadge" role="button" tabindex="0" title="눌러서 연속 저장 모드 종료">연속 저장 모드</span>
+      <span class="mb-desc work-only" id="modeDesc">파츠를 정리하자</span><button class="modebtn work-only" id="modeBtn" type="button"><b class="mb-name">분장실</b></button>
+    </div>
+  </div>
+  <input type="file" id="fileInput" accept=".psd,.psb,.clip">
+</header>
+
+<section id="work">
+  <div class="left">
+    <div class="pv-bar" id="pvBar">
+      <div class="pv-tabs" id="pvTabs"><button data-t="zoom">확대 보기</button><button data-t="full">전체</button></div>
+      <span class="pv-mintitle">미리보기</span>
+      <button class="pv-min" id="pvMin" aria-label="최소화" title="최소화"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path class="i-min" d="M4 8h8"/><path class="i-max" d="M9.5 3h3.5v3.5M6.5 13H3V9.5M13 3 9.2 6.8M3 13l3.8-3.8"/></svg></button>
+    </div>
+    <div class="card zoomcard">
+      <div class="label">Zoom <b>확대 보기</b></div>
+      <div class="zoom checker" id="zoomBox"><canvas id="zoom"></canvas></div>
+    </div>
+    <div class="card prevcard">
+      <div class="label">Preview <b>전체 미리보기</b></div>
+      <div class="framewrap" id="frameWrap"><div class="frame checker" id="frame"><canvas id="comp"></canvas><div id="sel"></div></div></div>
+      <div class="hint">드래그해서 확대할 영역 선택 · 영역 안을 끌면 이동</div>
+      <div class="ratios"><div class="seg" id="ratioSeg">
+        <button data-r="1:1" class="on">1:1</button><button data-r="2:3">2:3</button><button data-r="3:4">3:4</button><button data-r="9:16">9:16</button><button data-r="free">자유</button>
+      </div></div>
+      <div class="docmeta" id="meta"><div id="metaSize"></div><div id="metaCount"></div></div>
+    </div>
+    <div class="savebar make-only">
+      <button class="btn" id="btnSave">PNG로 저장</button>
+      <button class="btn dark" id="btnEnter">Enter 키로 PNG 연속 저장</button>
+      <div class="count-note" id="countNote"></div>
+    </div>
+    <div class="pv-resize" id="pvResize" aria-hidden="true"></div>
+    <div class="credit">made by <a href="https://x.com/SATURN97v_?s=20" target="_blank" rel="noopener">@SATURN97v_</a></div>
+  </div>
+
+  <div class="right">
+    <div class="card upload when-idle">
+      <div class="label">Upload <b>파일 올리기</b></div>
+      <div class="drop" id="drop">
+        <h1>정리할 파일을 올려주세요</h1>
+        <p>포토샵(.psd)이나 클립스튜디오(.clip) 파일을 끌어다 놓아 주세요.<br>파일은 기기 내에서 처리되고, 어디에도 업로드되지 않습니다.</p>
+        <div class="col">
+          <button class="btn dark" id="btnOpen2">PSD·CLIP 파일 선택</button>
+          <button class="btn" id="btnDemo">데모 캐릭터로 체험하기</button>
+        </div>
+      </div>
+      <div class="credit idle-credit" aria-hidden="true">&nbsp;</div>
+    </div>
+    <div class="card panelhead when-work">
+      <div class="ph-row">
+        <div class="viewctl">
+          <span class="vc-title">레이어 표시</span>
+          <div class="dots" id="viewSeg" title="레이어 미리보기 크기">
+            <button data-mode="name"><i></i>이름만</button><button data-mode="small"><i></i>작게</button><button data-mode="big" class="on"><i></i>크게</button>
+          </div>
+          <label class="chk namechk" id="nameChkLab"><input type="checkbox" id="chkNames" checked>이름 보이기</label>
+        </div>
+        <div class="spacer"></div>
+        <div class="ph-tools org-only">
+          <button class="tbtn" id="btnNewFolder"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.8 4.2c0-.6.5-1.1 1.1-1.1h3.3l1.5 1.6h5.4c.6 0 1.1.5 1.1 1.1v6.3c0 .6-.5 1.1-1.1 1.1H2.9c-.6 0-1.1-.5-1.1-1.1z"/></svg>새 폴더</button>
+          <button class="tbtn" id="btnTidyNames"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 2.9l2.5 2.5-7.6 7.6-3.1.6.6-3.1z"/><path d="M9.2 4.3l2.5 2.5"/></svg>이름 정리</button>
+          <button class="tbtn" id="btnAdd" title=".psd · .clip · .png"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>파츠 추가</button>
+        </div>
+        <div class="ph-tools make-only">
+          <div class="rand-wrap">
+            <button class="btn icon sq" id="btnRandom" title="전체 랜덤" aria-label="전체 랜덤">🎲</button>
+            <div id="randPop">
+            <div class="label"><b>랜덤에 포함할 폴더</b></div>
+            <div class="list" id="randList"></div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <button class="tiny" id="randAll">전체 선택</button><button class="tiny" id="randNone">전체 해제</button>
+              <div class="spacer"></div>
+              <button class="btn dark" id="randGo">랜덤 생성</button>
+            </div>
+            </div>
+          </div>
+          <button class="btn icon sq" id="btnReset" title="처음 상태로" aria-label="처음 상태로"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 8a4.8 4.8 0 1 0 1.5-3.5"/><path d="M3.4 2.6v2.5h2.5"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div id="blocks" class="when-work" style="display:flex;flex-direction:column;gap:6px"></div>
+  </div>
+</section>
+
+<footer>made by <a href="https://x.com/SATURN97v_?s=20" target="_blank" rel="noopener">@SATURN97v_</a></footer>
+
+<div id="toast"></div>
+<div id="dragGhost"></div>
+<div class="hmodal" id="guideModal" hidden>
+  <div class="hsheet guide-sheet" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="hsheet-head">
+      <div><h2 id="guideTitle">사진관 도움말</h2></div>
+      <button class="icon-btn" id="guideClose" type="button" aria-label="닫기"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="guide-body"><section class="g-step" data-step="1"><figure class="g-shot two"><img src="images/img02.webp" alt="분장실 화면의 모드 버튼"><img src="images/img03.webp" alt="스튜디오로 이동한 모습"></figure><h3><span class="g-num">1</span>분장실과 스튜디오</h3><div class="g-text"><p>파일 속 레이어 하나하나가 캐릭터를 꾸미는 <b>파츠</b>가 됩니다.</p><p>우상단 버튼으로 <b>분장실과 스튜디오</b>를 오갈 수 있습니다. <b>분장실</b>에서는 파츠를 정리하고 이름을 고칠 수 있고, <b>스튜디오</b>에서는 파츠를 골라 꾸며보며 자유롭게 사진을 찍어볼 수 있습니다.</p></div></section><section class="g-step" data-step="2" hidden><figure class="g-shot g-dual"><img class="pc-only" src="images/img04.webp" alt="여러 파츠를 드래그해 선택한 모습"><img class="tch-only" src="images/img05.webp" alt="파츠를 눌러 선택하고 아래 막대로 옮기는 모습"><div><img src="images/img06.webp" alt="작게 표시"><img src="images/img07.webp" alt="이름만 표시"></div></figure><h3><span class="g-num">2</span>보고 옮기기</h3><div class="g-text"><div class="g-line pc-only"><span class="g-ico"><span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4.5" width="13" height="7" rx="3.5" fill="currentColor"/><circle cx="11" cy="8" r="2.3" fill="#fff"/></svg></span></span><p>각 파츠와 폴더는 눌러서 켜고 끌 수 있습니다. <b>켜진 파츠만 진하게</b> 보입니다.</p></div><div class="g-line tch-only"><span class="g-ico"><span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4.5" width="13" height="7" rx="3.5" fill="currentColor"/><circle cx="11" cy="8" r="2.3" fill="#fff"/></svg></span></span><p>분장실에서 파츠를 누르면 <b>원하는 수만큼 선택</b>되고, <span class="kbd"><span class="dotk"></span></span>으로 켜고 끌 수 있습니다. 폴더는 빈 곳을 누르면 켜고 꺼집니다. <b>켜진 파츠만 진하게</b> 보입니다.</p></div><div class="g-line pc-only"><span class="g-ico"><span class="kbd ico-svg g-cur"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.2 2.3v10.4l2.9-2.6 1.9 4.1 1.7-.8-1.9-4h3.9z" fill="currentColor" stroke="currentColor" stroke-width=".6" stroke-linejoin="round"/></svg></span></span><p>파츠, 또는 폴더 왼쪽 부분을 잡은 상태에서 아무데에나 옮겨봅시다. <b>드래그</b>하면 한 번에 선택됩니다.</p></div><div class="g-line tch-only"><span class="g-ico"><span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="3" fill="currentColor"/></svg></span></span><p>선택한 파츠는 아래 막대의 <b>◀ ▶ ▲ ▼</b>로 옮길 수 있습니다. 폴더는 <b>⋮⋮</b>를 누른 뒤 놓을 폴더를 누르면 옮겨집니다.</p></div><div class="g-line"><span class="g-ico"><span class="g-chip">레이어 표시</span></span><p>에서 <b>크게 · 작게 · 이름만</b>으로 보는 방식을 바꿀 수 있습니다.</p></div></div></section><section class="g-step" data-step="3" hidden><figure class="g-shot two"><img src="images/img08.webp" alt="이름 정리 전"><img src="images/img09.webp" alt="이름 정리 후"></figure><h3><span class="g-num">3</span>정리정돈</h3><div class="g-text"><div class="g-line"><span class="g-ico"><span class="kbd g-ga">가</span></span><p>파츠와 폴더의 이름은 <b>길게 누르면</b> 바꿀 수 있습니다.</p></div><div class="g-line"><span class="g-ico"><span class="g-chip"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.8 4.2c0-.6.5-1.1 1.1-1.1h3.3l1.5 1.6h5.4c.6 0 1.1.5 1.1 1.1v6.3c0 .6-.5 1.1-1.1 1.1H2.9c-.6 0-1.1-.5-1.1-1.1z"/></svg>새 폴더</span></span><p>새 폴더를 추가해 정리합니다.</p></div><div class="g-line"><span class="g-ico"><span class="g-chip"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 2.9l2.5 2.5-7.6 7.6-3.1.6.6-3.1z"/><path d="M9.2 4.3l2.5 2.5"/></svg>이름 정리</span></span><p>'레이어 1' 등의 이름을 깔끔하게 정리해줍니다. 정해둔 이름은 그냥 둡니다.</p></div><div class="g-line"><span class="g-ico"><span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></span></span><p>을 누르면 도중에 새로운 파츠를 추가할 수 있습니다. <span class="g-note">(.psd, .clip, .png 지원)</span></p></div></div></section><section class="g-step" data-step="4" hidden><figure class="g-shot two"><img src="images/img10.webp" alt="클리핑 화살표를 끌어당기는 모습"><img src="images/img11.webp" alt="클리핑된 모습"></figure><figure class="g-shot g-small"><img src="images/img12.webp" alt="혼합 모드를 확인하는 모습"></figure><h3><span class="g-num">4</span>클리핑과 혼합 모드</h3><div class="g-text"><div class="g-line"><span class="g-ico"><span class="kbd ico-svg ico-on"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 12 4M6.5 4H12v5.5"/></svg></span></span><p><span class="pc-only">파츠에 커서를 올리면</span><span class="tch-only">파츠를 누르면</span> <span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 12 4M6.5 4H12v5.5"/></svg></span>이 나타납니다. 이 버튼을 누른 채로 원하는 파츠나 폴더에 화살표를 당겨 놓습니다. 클리핑 설정은 기본적으로 파일 설정을 따라갑니다.</p></div><div class="g-line"><span class="g-ico"><span class="kbd g-blend">✦</span></span><p><span class="pc-only">커서를 올리면</span><span class="tch-only">누르면</span> 파츠나 폴더에 적용된 효과를 볼 수 있습니다.</p></div></div></section><section class="g-step" data-step="5" hidden><figure class="g-shot two"><img src="images/img13.webp" alt="연동 그룹을 설정하는 창"><img src="images/img14.webp" alt="같은 그룹 중심 파츠가 함께 켜지고 꺼지는 모습"></figure><h3><span class="g-num">5</span>연동 그룹</h3><div class="g-text"><p>특정 조건에서 함께 쓰이는 파츠(ex. 반만 뜬 눈매, 눈동자, 줄어든 흰자위)를 다룰 때 유용하게 쓸 수 있습니다. 파츠의 <span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><circle cx="5.7" cy="5.2" r="2.5"/><path d="M1 14c0-3 2.1-5 4.7-5s4.7 2 4.7 5z"/><circle cx="11.3" cy="5.9" r="2.1"/><path d="M10.6 9.4c.3-.1.6-.1.9-.1 2.1 0 3.6 1.9 3.6 4.7h-3.5c0-1.9-.4-3.4-1-4.6z"/></svg></span>을 눌러 그룹 번호와 역할을 정합니다.</p><p>스튜디오에서 <b>중심 파츠</b> 하나를 켜면 같은 그룹의 중심 파츠가 모두 켜지고, <b>보조 파츠</b>는 같은 그룹의 중심 파츠가 켜졌을 때만 활성화됩니다.</p></div></section><section class="g-step" data-step="6" hidden><figure class="g-shot two g-harrow"><img src="images/img15.webp" alt="분장실에서 숨김을 설정한 모습"><img src="images/img16.webp" alt="스튜디오에서 숨긴 묶음이 보이지 않는 모습"><div class="g-arrow g-arrow-r" aria-hidden="true"><svg viewBox="0 0 24 24" width="52" height="52"><path d="M8.5 2h7v10h5L12 22 3.5 12h5z" fill="#16161a" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div></figure><h3><span class="g-num">6</span>스튜디오 입장</h3><div class="g-text"><div class="g-line"><span class="g-ico"><span class="kbd ico-svg"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="8" cy="8" r="5.6"/><path d="M4 4 12 12" stroke-linecap="round"/></svg></span></span><p>을 누르면 그 묶음이 스튜디오에서 보이지 않습니다. 고정된 파츠를 숨겨두면 보다 쉽게 파츠를 움직일 수 있습니다.</p></div><div class="g-line"><span class="g-ico"><span class="kbd ico-svg g-chk"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.4l3 3 6-6.6"/></svg></span></span><p>스튜디오에서 <b>중복 허용</b>을 체크하면 한 폴더 안의 파츠를 여러 개 함께 켤 수 있습니다. <span class="g-note">(체크하지 않으면 하나만 고를 수 있습니다.)</span></p></div></div></section><section class="g-step" data-step="7" hidden><div class="g-flow join"><figure class="g-shot "><img src="images/img17.webp" alt="연속 저장 중 조합을 기억한 모습"></figure><div class="g-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="52" height="52"><path d="M8.5 2h7v10h5L12 22 3.5 12h5z" fill="#16161a" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg></div><figure class="g-shot "><img src="images/img18.webp" alt="기억한 조합을 미리보는 모습"></figure></div><h3><span class="g-num">7</span>스튜디오</h3><div class="g-text"><p>파츠를 골라 조합하고 <b>PNG</b>로 저장합니다.</p><p><b>PNG 연속 저장</b>을 켜면 <span class="pc-only">Enter 키 혹은 </span><span class="tch-only"></span><span class="kbd ico-svg"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><path d="M3.5 8.5a2 2 0 0 1 2-2h2.3l1.4-2h5.6l1.4 2h2.3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/></svg></span>을 누를 때마다 지금 조합을 기억합니다. 모드를 끝내면 한 번에 확인하고 .zip으로 내보낼 수 있습니다.</p></div></section><section class="g-step" data-step="8" hidden><h3><span class="g-num">8</span>묻고 읽기</h3><div class="g-text"><div class="g-line"><span class="g-ico"><span class="g-chip g-help"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.2 6.2a1.9 1.9 0 113 1.5c-.7.4-1.2.8-1.2 1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".9" fill="currentColor"/></svg>도움말</span></span><p>도움말은 언제든 다시 볼 수 있습니다.<br>또한, 오류가 발견되면 언제든 <a class="g-link" href="https://open.kakao.com/o/scsXX7Of" target="_blank" rel="noopener">이곳</a>으로 연락해주세요.</p></div></div></section></div>
+    <div class="hsheet-foot g-foot"><div class="g-dots" id="guideDots"><i data-i="1"></i><i data-i="2"></i><i data-i="3"></i><i data-i="4"></i><i data-i="5"></i><i data-i="6"></i><i data-i="7"></i><i data-i="8"></i></div><span class="spacer"></span><button class="btn" id="guidePrev" type="button">이전으로</button><button class="btn dark" id="guideNext" type="button">다음으로</button></div>
+  </div>
+</div>
+<div class="hmodal" id="addModal" hidden>
+  <div class="hsheet add-sheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+    <div class="hsheet-head">
+      <div><h2 id="addTitle">파츠 추가</h2></div>
+      <button class="icon-btn" id="addClose" type="button" aria-label="닫기"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <label class="add-drop" id="addDrop">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>
+      <b>여기로 파일들을 끌어다 놓거나 눌러서 고르기</b>
+      <span>.psd, .clip, .png 파일만 지원합니다.</span>
+      <input type="file" id="addInput" accept=".psd,.psb,.clip,.png,image/png" multiple hidden>
+    </label>
+  </div>
+</div>
+<button id="snapBtn" aria-label="지금 조합 저장" title="지금 조합 저장"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 8.5a2 2 0 0 1 2-2h2.3l1.4-2h5.6l1.4 2h2.3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/></svg></button>
+<svg id="clipSvg"><circle r="6" fill="#161616"/></svg>
+<div id="loading">레이어를 읽는 중…</div>
+<div class="overlay" id="dlg"><div class="dialog">
+  <p id="dlgMsg"></p>
+  <div class="row"><button class="btn" id="dlgCancel">취소</button><button class="btn dark" id="dlgOk">확인</button></div>
+</div></div>
+<div class="overlay" id="resDlg"><div class="dialog">
+  <div class="res-head">
+    <input id="resChar" class="charname" placeholder="캐릭터 이름" spellcheck="false">
+    <span class="sub" id="resTitle"></span><span class="sub" id="resInfo"></span>
+    <div class="spacer"></div>
+    <span class="sub">보기</span>
+    <div class="seg" id="resScope"><button data-v="full">전체 이미지</button><button data-v="zoom">확대 영역</button></div>
+    <span class="sub">열</span>
+    <div class="stepper"><button id="resColMinus">−</button><input id="resCols" type="number" min="1" max="12" value="5"><button id="resColPlus">+</button></div>
+  </div>
+  <div id="resGrid"></div>
+  <div class="res-foot">
+    <button class="btn" id="resDiscard">모두 지우기</button>
+    <span class="note">번호를 누르면 이름을 붙이고, 그림을 끌어서 순서를 바꿀 수 있어요.</span>
+    <div class="spacer"></div>
+    <button class="btn" id="resResume">이어서 기억하기</button>
+    <div class="expbox">
+      <div class="expopts"><label><input type="checkbox" id="expFull">전체 이미지</label><label><input type="checkbox" id="expZoom">확대 영역</label></div>
+      <button class="btn dark" id="resExport">내보내기 (.zip)</button>
+    </div>
+  </div>
+</div></div>
+<div class="overlay" id="imgDlg"><div class="dialog" style="width:min(520px,92vw)">
+  <img id="imgDlgImg" alt="저장할 이미지">
+  <p style="text-align:center;color:var(--sub);font-size:13px">이미지를 길게 누르거나 우클릭해서 저장해 주세요.</p>
+  <div class="row"><button class="btn" id="imgDlgClose">닫기</button></div>
+</div></div>
+
+<script src="script.js"></script>
+</body>
+</html>
