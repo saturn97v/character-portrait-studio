@@ -1716,9 +1716,9 @@ async function exportDemoSheet(){
     x.fillStyle='#161616'; x.fillRect(0,sh.H,sh.W,band);
     try{ await document.fonts.load('40px "Waguri"'); }catch(_){}
     const logo=invertedLogo(), pad=sh.pad*1.4, cy=sh.H+band/2;
-    const stack=resCols<=2;
-    const two=resCols===2;   // 2열은 제목을 조금 더 크게
-    let iconH=band*(stack?(two?.37:.3):.46), tS=band*(stack?(two?.25:.2):.3), rS=band*(stack?.1:.13), gap=band*.12, mid=band*.3;
+    const stack=resCols<=1;   // 1열만 위아래로 쌓고, 2열부터는 왼쪽 로고·오른쪽 설명
+    const two=resCols===2;   // 2열: 제목·설명 사이를 좁히고 제목을 조금 키움
+    let iconH=band*(stack?.3:two?.5:.46), tS=band*(stack?.2:two?.35:.3), rS=band*(stack?.1:.13), gap=band*.12, mid=band*(two?.1:.3);
     const iconW=()=>logo?iconH*logo.width/logo.height:0;
     const wTitle=()=>{ x.font=`${tS}px "Waguri", ${FONT}`; return x.measureText('캐릭터 사진관').width; };
     const wRight=()=>{ x.font=`600 ${rS}px ${FONT}`; return Math.max(...DEMO_BAND_MSG.map(t=>x.measureText(t).width)); };
@@ -2125,6 +2125,11 @@ function applyDemoPreset(){
   const Lof=(B,n)=>B?.layers.find(L=>L.node.name===n);
   const order=(B,names)=>{ if(!B) return; const rest=B.layers.filter(L=>!names.includes(L.node.name)); B.layers=[...names.map(n=>Lof(B,n)).filter(Boolean),...rest]; };
   const only=(B,n)=>{ if(!B) return; B.layers.forEach(L=>L.on=L.def=L.node.name===n); B.hidden=B.defHidden=false; };
+  {   // 폴더 순서(위→아래): 악세-눈썹-안광-눈-흰자위-감정표현-입. 다른 묶음 자리는 그대로
+    const want=['악세','눈썹','안광','눈','흰자위','감정표현','입'].map(F).filter(Boolean);
+    const slots=blocks.map((b,i)=>want.includes(b)?i:-1).filter(i=>i>=0);
+    slots.forEach((i,k)=>blocks[i]=want[k]);
+  }
   order(F('입'),[':)',':D',':(']); order(F('안광'),['정면','옆']); order(F('눈'),['일반 눈','반눈2','반눈1']); order(F('흰자위'),['일반 눈 흰자위','반눈 흰자위']);
   only(F('감정표현'),'레이어 3'); only(F('입'),':)');
   for(const n of ['원산지표기','클리핑 확인용 레이어(풀었다 걸었다 해보세요)']){ const B=loose(n); if(B) B.hideMake=true; }
