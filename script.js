@@ -689,6 +689,7 @@ function positionSel(){
 // 확대 창: 선택한 비율 그대로의 높이. 남는 높이는 전체 미리보기가 차지
 const MOBILE=matchMedia(MOBILE_Q);
 MOBILE.addEventListener?.('change',()=>{ if(doc) requestAnimationFrame(layoutPreview); });
+let prevChrome=90; const ZOOM_MIN=140, PREV_MIN=130;
 function sizeZoomBox(){
   const box=$('zoomBox'), card=box.parentElement, left=document.querySelector('.left');
   const cs=getComputedStyle(card), ar=region.w/region.h, full=card.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
@@ -699,11 +700,17 @@ function sizeZoomBox(){
   else if(getComputedStyle(left).position!=='static'){
     const prev=document.querySelector('.prevcard'), wrap=$('frameWrap'), acts=document.querySelector('.savebar'), cr=document.querySelector('.left .credit');
     const G=parseFloat(getComputedStyle(left).rowGap)||8;
-    const chrome=(card.offsetHeight-box.offsetHeight)+(prev.scrollHeight-wrap.offsetHeight)+G
-      +(acts?.offsetHeight?acts.offsetHeight+G:0)+(cr?.offsetHeight?cr.offsetHeight+G:0);
-    const room=left.clientHeight-chrome, minPrev=Math.max(130,room*.38);   // 미리보기도 넉넉히 남김
-    const maxH=room-minPrev;
-    if(maxH>80 && h>maxH) h=maxH;
+    const base=(card.offsetHeight-box.offsetHeight)+(acts?.offsetHeight?acts.offsetHeight+G:0)+(cr?.offsetHeight?cr.offsetHeight+G:0);
+    const folded=left.classList.contains('pv-fold');
+    if(!folded) prevChrome=prev.scrollHeight-wrap.offsetHeight+G;
+    const room=left.clientHeight-base-prevChrome;
+    // 창 높이가 낮아 확대 보기와 전체 미리보기를 다 둘 수 없으면 전체 미리보기를 접음 (저장 버튼 위로 넘치지 않게)
+    const fold=room<(folded?ZOOM_MIN+PREV_MIN+24:ZOOM_MIN+PREV_MIN);
+    if(fold!==folded){ left.classList.toggle('pv-fold',fold); requestAnimationFrame(()=>requestAnimationFrame(layoutPreview)); }
+    if(!fold){
+      const minPrev=Math.max(PREV_MIN,room*.38), maxH=room-minPrev;   // 미리보기도 넉넉히 남김
+      if(maxH>80 && h>maxH) h=maxH;
+    } else h=Math.min(h,Math.max(60,left.clientHeight-base));
   }
   const w=Math.min(full,h*ar);
   box.style.aspectRatio=''; box.style.width=w+'px'; box.style.height=h+'px';
@@ -1906,22 +1913,40 @@ function hasDrawable(n){ return (n.children||[]).some(o=>o.type==='group'?hasDra
 // 이 기기에서 이 크기 캔버스를 그릴 수 있는지 (너무 크면 브라우저가 빈 캔버스를 줌)
 function canvasOK(w,h){ try{ const c=mkCanvas(w,h), x=c.getContext('2d'); if(!x) return false; x.fillStyle='#000'; x.fillRect(w-1,h-1,1,1); const ok=x.getImageData(w-1,h-1,1,1).data[3]===255; c.width=c.height=1; return ok; }catch(_){ return false; } }
 const friendlyErr=m=>/[가-힣]/.test(m||'')?m:'파일을 읽지 못했어요. 손상되었거나 지원하지 않는 형식일 수 있어요.';
-async function openFile(f,confirmed=false){
-  if(!f) return;
+const isPNG=f=>/\.png$/i.test(f.name)||f.type==='image/png';
+// PNG 여러 장 → 한 장 한 장이 파츠인 캐릭터로 (그림 크기는 가장 큰 PNG 기준, 모두 왼쪽 위에 맞춤)
+async function pngDoc(files){
+  const nodes=[]; let w=0,h=0, fails=0;
+  for(const f of files){
+    try{ const bmp=await createImageBitmap(f); const c=mkCanvas(bmp.width,bmp.height); c.getContext('2d').drawImage(bmp,0,0); bmp.close?.();
+      w=Math.max(w,c.width); h=Math.max(h,c.height);
+      nodes.push({type:'layer',name:f.name.replace(/\.png$/i,''),_img:{canvas:c,left:0,top:0},blend:'norm',opacity:1,hidden:false}); }
+    catch(e){ console.error(e); fails++; }
+  }
+  if(!nodes.length) throw new Error('PNG 파일을 읽지 못했어요.');
+  return {width:w,height:h,root:{type:'group',children:nodes.reverse()},pngFails:fails};   // 먼저 고른 PNG가 맨 위
+}
+async function openFile(fs,confirmed=false){
+  const list=(Array.isArray(fs)?fs:[fs]).filter(Boolean); if(!list.length) return;
+  const main=list.find(f=>!isPNG(f)), pngs=main?[]:list.filter(isPNG);   // .psd/.clip이 섞여 있으면 그 파일 하나만
+  const f=main||pngs[0];
   if(loadingFile){ toast('한 번에 한 파일만 불러올 수 있어요. 지금 파일을 다 불러온 뒤 다시 열어 주세요.',2600); return; }
   if(saving){ toast('내보내는 도중에는 새 파일을 열 수 없어요.',2200); return; }
   if(doc&&!confirmed&&!await ask(ASK_NEW)) return;
-  if(f.size>BIG_FILE) await notice(`파일이 아주 큽니다. (${(f.size/1024**3).toFixed(1)}GB)\n작동이 느릴 수 있습니다.`);
+  const size=main?f.size:pngs.reduce((a,x)=>a+x.size,0);
+  if(size>BIG_FILE) await notice(`파일이 아주 큽니다. (${(size/1024**3).toFixed(1)}GB)\n작동이 느릴 수 있습니다.`);
   const isClip=/\.clip$/i.test(f.name);
   $('loading').classList.add('show'); loadingFile=true;
   try{
-    const d=isClip?await parseCLIP(await f.arrayBuffer()):await parsePSD(await f.arrayBuffer());
+    const d=pngs.length?await pngDoc(pngs):isClip?await parseCLIP(await f.arrayBuffer()):await parsePSD(await f.arrayBuffer());
+    const name=pngs.length>1?`${f.name.replace(/\.png$/i,'')} 외 ${pngs.length-1}장`:f.name;
     if(!d.root.children.length||!hasDrawable(d.root)){ $('loading').classList.remove('show'); await notice('불러올 레이어가 없었습니다.'); return; }
     memSaveNow();   // 열려 있던 파일의 설정을 먼저 기억
-    start(d,f.name);
+    start(d,name);
     $('loading').classList.remove('show'); await offerResume();
     if(!canvasOK(d.width,d.height)) await notice(`그림 크기가 너무 커요(${d.width}×${d.height}px).\n이 기기에서는 제대로 보이지 않거나 저장되지 않을 수 있어요.`);
     const sk=[d.skippedVector?`벡터 레이어 ${d.skippedVector}개`:'',d.skippedFilter?`그라데이션 맵 외 색조 보정 레이어 ${d.skippedFilter}개`:''].filter(Boolean);
+    if(d.pngFails) toast(`읽지 못한 PNG ${d.pngFails}개는 빼고 불러왔어요.`,3000);
     if(sk.length) toast(`${sk.join(', ')}는 불러오지 못했어요. 클립스튜디오에서 래스터화(또는 결합) 후 저장해 주세요.`,6500);
   }catch(e){ console.error(e); toast(friendlyErr(e.message),5200); }
   finally{ $('loading').classList.remove('show'); loadingFile=false; }
@@ -2025,27 +2050,28 @@ const fi=$('fileInput');
 const ASK_NEW='지금 작업을 닫고 새 파일을 열까요?\n(지금까지 정리한 설정은 5개 파일까지 이 브라우저에 기억됩니다.)';
 $('btnOpen').onclick=async e=>{ e.currentTarget.blur(); if(doc&&!await ask(ASK_NEW)) return; fi.click(); };
 $('btnOpen2').onclick=()=>fi.click();
-fi.onchange=()=>{ openFile(fi.files[0],true); fi.value=''; };
+fi.onchange=()=>{ openFile([...fi.files],true); fi.value=''; };
 const isFileDrag=e=>[...(e.dataTransfer?.types||[])].includes('Files');
 ['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{ if(!isFileDrag(e)) return; e.preventDefault(); $('drop').classList.add('over'); }));
 document.addEventListener('dragleave',e=>{ if(isFileDrag(e)) $('drop').classList.remove('over'); });
-document.addEventListener('drop',e=>{ if(!isFileDrag(e)) return; e.preventDefault(); $('drop').classList.remove('over'); if(!$('addModal').hidden){ addParts([...e.dataTransfer.files]); return; } openFile(e.dataTransfer.files[0]); });
+document.addEventListener('drop',e=>{ if(!isFileDrag(e)) return; e.preventDefault(); $('drop').classList.remove('over'); if(!$('addModal').hidden){ addParts([...e.dataTransfer.files]); return; } openFile([...e.dataTransfer.files]); });
 
 // ================= 도움말 (첫 업로드 때 한 번, 이후 '도움말' 버튼) =================
 const HELP_KEY='charStudio.helpSeen';
 function anyModalOpen(){ return [...document.querySelectorAll('.hmodal')].some(m=>!m.hidden)||!!document.querySelector('.overlay.show'); }
 function openModal(id){ $(id).hidden=false; document.body.classList.add('modal-open'); }
 function closeModal(id){ $(id).hidden=true; if(!anyModalOpen()) document.body.classList.remove('modal-open'); }
-let guideStep=1; const GUIDE_N=document.querySelectorAll('#guideModal .g-step').length;
+let guideStep=1; const GUIDE_N=document.querySelectorAll('#guideModal .g-step:not(.g-pre)').length;
+const guideMin=()=>TOUCH.matches?0:1;   // 터치 기기는 'PC에 맞춰 만들었어요' 안내(0쪽)부터
 function showGuideStep(n){
-  guideStep=Math.max(1,Math.min(GUIDE_N,n));
+  guideStep=Math.max(guideMin(),Math.min(GUIDE_N,n));
   document.querySelectorAll('#guideModal .g-step').forEach(s=>s.hidden=+s.dataset.step!==guideStep);
   document.querySelectorAll('#guideDots i').forEach(d=>d.classList.toggle('on',+d.dataset.i===guideStep));
-  $('guidePrev').hidden=guideStep===1;
-  $('guideNext').textContent=guideStep===GUIDE_N?'찍어보자!':'다음으로';
+  $('guidePrev').hidden=guideStep===guideMin();
+  $('guideNext').textContent=guideStep===GUIDE_N?'찍어보자!':guideStep===0?'시작하기':'다음으로';
   const gb=$('guideModal').querySelector('.guide-body'); gb.classList.toggle('fit',guideStep===GUIDE_N); gb.scrollTop=0;
 }
-function openGuide(){ showGuideStep(1); openModal('guideModal'); }
+function openGuide(){ showGuideStep(guideMin()); openModal('guideModal'); }
 function maybeFirstGuide(){
   let seen=false; try{ seen=localStorage.getItem(HELP_KEY)==='1'; }catch(_){ seen=false; }
   if(seen) return; openGuide(); try{ localStorage.setItem(HELP_KEY,'1'); }catch(_){}
@@ -2060,7 +2086,7 @@ document.addEventListener('keydown',e=>{
   if($('guideModal').hidden||e.isComposing) return;
   if(e.key==='ArrowRight'){ e.preventDefault(); if(guideStep<GUIDE_N) showGuideStep(guideStep+1); }
   else if(e.key==='Enter'){ e.preventDefault(); e.stopImmediatePropagation(); $('guideNext').click(); }
-  else if(e.key==='ArrowLeft'&&guideStep>1){ e.preventDefault(); showGuideStep(guideStep-1); }
+  else if(e.key==='ArrowLeft'&&guideStep>guideMin()){ e.preventDefault(); showGuideStep(guideStep-1); }
 },true);
 document.querySelectorAll('.hmodal').forEach(m=>m.addEventListener('pointerdown',e=>{ if(e.target===m) closeModal(m.id); }));
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; for(const id of ['addModal','guideModal']) if(!$(id).hidden){ e.stopImmediatePropagation(); closeModal(id); return; } },true);

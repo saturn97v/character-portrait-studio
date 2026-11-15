@@ -1,6 +1,6 @@
 # 캐릭터 사진관 📸
 
-레이어 파일(.psd · .clip)을 올리면 레이어를 파츠로 정리하고, 파츠를 골라 조합한 캐릭터 포트레이트를 사진처럼 찍어 저장할 수 있는 웹 도구입니다.
+레이어 파일(.clip · .psd)이나 PNG 이미지를 올리면 파츠로 정리하고, 파츠를 골라 조합한 캐릭터 포트레이트를 사진처럼 찍어 저장할 수 있는 웹 도구입니다.
 
 - 사이트: https://saturn97v.github.io/character-portrait-studio/
 - 만든 사람: 토성([@SATURN97v_](https://x.com/SATURN97v_))

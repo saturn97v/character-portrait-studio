@@ -713,6 +713,12 @@
   .rdup{top:auto!important;bottom:6px}
   #resGrid .rimg{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   #resGrid .rimg img{-webkit-user-drag:none;pointer-events:none}
+  .left.pv-fold>.prevcard{display:none}   /* 창이 낮으면 전체 미리보기를 접음 */
+  .g-pcnote{display:flex;align-items:center;justify-content:center;gap:18px;padding:16px 0 14px;background:var(--bg)}
+  .g-pcmon{position:relative;display:inline-block;line-height:0}
+  .g-pcchk{position:absolute;right:-9px;top:-9px;width:24px;height:24px;border-radius:50%;background:#16161a;display:grid;place-items:center}
+  .g-pcchk svg{width:14px;height:14px}
+  #resGrid .rimg img{max-height:none;margin:0;border-radius:0}   /* 공통 .dialog img의 높이 제한이 칸 그림을 찌그러뜨리지 않게 */
   body.res-dragging,body.res-dragging *{cursor:grabbing!important}
   .rcell.rdragging{opacity:.35}
   .rcell.rdrop-l{box-shadow:-4px 0 0 var(--ink)!important}
