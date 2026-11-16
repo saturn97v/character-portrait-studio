@@ -2062,14 +2062,14 @@ function anyModalOpen(){ return [...document.querySelectorAll('.hmodal')].some(m
 function openModal(id){ $(id).hidden=false; document.body.classList.add('modal-open'); }
 function closeModal(id){ $(id).hidden=true; if(!anyModalOpen()) document.body.classList.remove('modal-open'); }
 let guideStep=1; const GUIDE_N=document.querySelectorAll('#guideModal .g-step:not(.g-pre)').length;
-const guideMin=()=>TOUCH.matches?0:1;   // 터치 기기는 'PC에 맞춰 만들었어요' 안내(0쪽)부터
+const guideMin=()=>0;   // 도움말은 '시작하기 전에...' 안내(0쪽)부터. 휴대폰 문단은 터치 기기에서만
 function showGuideStep(n){
   guideStep=Math.max(guideMin(),Math.min(GUIDE_N,n));
   document.querySelectorAll('#guideModal .g-step').forEach(s=>s.hidden=+s.dataset.step!==guideStep);
   document.querySelectorAll('#guideDots i').forEach(d=>d.classList.toggle('on',+d.dataset.i===guideStep));
   $('guidePrev').hidden=guideStep===guideMin();
   $('guideNext').textContent=guideStep===GUIDE_N?'찍어보자!':guideStep===0?'시작하기':'다음으로';
-  const gb=$('guideModal').querySelector('.guide-body'); gb.classList.toggle('fit',guideStep===GUIDE_N); gb.scrollTop=0;
+  const gb=$('guideModal').querySelector('.guide-body'); gb.classList.toggle('fit',guideStep===GUIDE_N||(guideStep===0&&!TOUCH.matches));   // 마지막 쪽·PC 안내 쪽은 내용 높이에 맞춤 gb.scrollTop=0;
 }
 function openGuide(){ showGuideStep(guideMin()); openModal('guideModal'); }
 function maybeFirstGuide(){

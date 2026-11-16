@@ -714,6 +714,9 @@
   #resGrid .rimg{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   #resGrid .rimg img{-webkit-user-drag:none;pointer-events:none}
   .left.pv-fold>.prevcard{display:none}   /* 창이 낮으면 전체 미리보기를 접음 */
+  .g-prow{display:flex;align-items:center;gap:22px}
+  .g-prow p{margin:0;font-size:13.5px;line-height:1.7;color:var(--ink);word-break:keep-all}
+  .g-vr{flex:none;height:auto}
   .g-pcnote{display:flex;align-items:center;justify-content:center;gap:18px;padding:16px 0 14px;background:var(--bg)}
   .g-pcmon{position:relative;display:inline-block;line-height:0}
   .g-pcchk{position:absolute;right:-9px;top:-9px;width:24px;height:24px;border-radius:50%;background:#16161a;display:grid;place-items:center}
@@ -804,7 +807,7 @@
   @media (max-width:780px){ body.enter-active .mb-desc{display:none!important} }
   /* 도움말: PC(마우스)용과 터치 화면용 설명을 나눠 보여줌 */
   .tch-only{display:none!important}
-  @media (hover:none) and (pointer:coarse){ .pc-only{display:none!important} img.tch-only{display:block!important} .g-line.tch-only{display:grid!important} span.tch-only{display:inline!important} }
+  @media (hover:none) and (pointer:coarse){ .pc-only{display:none!important} img.tch-only{display:block!important} .g-line.tch-only{display:grid!important} span.tch-only{display:inline!important} p.tch-only{display:block!important} figure.tch-only{display:flex!important} div.tch-only{display:flex!important} }
   .kbd:has(>.dotk){display:inline-flex;align-items:center;justify-content:center;vertical-align:-3px}
   .kbd>.dotk{margin:0}
   /* 휴대폰 '크게': 폴더 색 칩 7개를 한 줄로 */
